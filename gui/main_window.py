@@ -3,7 +3,6 @@ from tkinter import ttk, filedialog, messagebox
 from threading import Thread
 from PIL import ImageTk, Image
 
-from core.image_loader import ImageLoader, PALLETE
 from core.video_loader import VideoLoader
 from gui.painter import PainterApp
 
@@ -12,7 +11,8 @@ class MainWindow:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title('Q3 Console Painter')
-        self.root.geometry('1000x600')
+        self.root.geometry('930x600')
+        self.root.minsize(930, 600)
 
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(expand=True, fill=tk.BOTH)
@@ -27,75 +27,67 @@ class MainWindow:
 class ImageFrame(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
+        
+        # -------------- Toolbar --------------
+        toolbar = ttk.Frame(self)
+        toolbar.pack(fill=tk.X, padx=10, pady=(10, 0))
 
+        ttk.Button(toolbar, text='Open', command=self.open_image).pack(side=tk.LEFT)
+        ttk.Button(toolbar, text='Clear', command=self.clear_image).pack(side=tk.LEFT, padx=5)
+
+        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=5)
+        self.var_grid = tk.BooleanVar(value=False)
+        ttk.Checkbutton(toolbar, text='Grid', variable=self.var_grid, command=self.toggle_grid).pack(side=tk.LEFT)
+
+        ttk.Button(toolbar, text='Pixel aspect', command=self.fix_pixel_aspect).pack(side=tk.LEFT, padx=5)
+
+        # -------------- Main Frame --------------
         main_frame = ttk.Frame(self, padding=10)
         main_frame.pack(fill=tk.BOTH, expand=True)
-
-        control_frame = ttk.Frame(main_frame)
+        
+        control_frame = ttk.Frame(main_frame, width=220)
         control_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
-
+        
         display_frame = ttk.Frame(main_frame)
         display_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        # -------- Import panel (Control frame) --------
-
-        self.var_alpha = tk.BooleanVar(value=False)
-        ttk.Checkbutton(control_frame, text='Save alpha', variable=self.var_alpha).pack(anchor=tk.W, pady=2)
-        ttk.Button(control_frame, text='Open image', command=self.open_image).pack(fill=tk.X, pady=2)
-
-        ttk.Separator(control_frame).pack(fill=tk.X, pady=20)
         
-        # -------- Settings panel (Control frame) --------
-
-        ttk.Button(control_frame, text='Clear image', command=self.clear_image).pack(fill=tk.X, pady=2)
-        ttk.Label(control_frame, text='Size:').pack(anchor=tk.W, pady=2)
-
-        size_frame = ttk.Frame(control_frame)
-        size_frame.pack(fill=tk.X)
+        # -------------- Size Frame --------------
+        size_box = ttk.LabelFrame(control_frame, text='Image size')
+        size_box.pack(fill=tk.X, pady=8)
 
         self.var_width = tk.IntVar(value=80)
         self.var_height = tk.IntVar(value=40)
-
-        ttk.Spinbox(size_frame, from_=1, to=100, increment=5,
-                    textvariable=self.var_width, width=6).pack(side=tk.LEFT)
-        ttk.Label(size_frame, text='x').pack(side=tk.LEFT, padx=5)
-        ttk.Spinbox(size_frame, from_=1, to=100, increment=5,
-                    textvariable=self.var_height, width=6).pack(side=tk.LEFT)
         
-        self.var_grid = tk.BooleanVar(value=False)
-        ttk.Checkbutton(
-            control_frame,
-            text='Show grid',
-            variable=self.var_grid,
-            command=self.toggle_grid
-        ).pack(anchor=tk.W, pady=5)
+        size_spins_box = ttk.Frame(size_box, padding=2)
+        size_spins_box.pack(fill=tk.X, pady=8)
+        ttk.Spinbox(size_spins_box, from_=1, to=100, increment=5 ,textvariable=self.var_width, width=6).pack(side=tk.LEFT)
+        ttk.Label(size_spins_box, text='x').pack(side=tk.LEFT, padx=5)
+        ttk.Spinbox(size_spins_box, from_=1, to=100, increment=5, textvariable=self.var_height, width=6).pack(side=tk.LEFT)
         
-        ttk.Button(control_frame, text='Apply', command=self.resize_image).pack(fill=tk.X, pady=2)
-
-        ttk.Separator(control_frame).pack(fill=tk.X, pady=20)
+        ttk.Button(size_box, text='Apply', command=self.resize_image).pack(pady=2, fill=tk.X,)
         
-        # -------- Export panel (Control frame) --------
+        # -------------- Export Frame --------------
+        export_box = ttk.LabelFrame(control_frame, text='Export')
+        export_box.pack(fill=tk.X, pady=8)
         
-        ttk.Label(control_frame, text='Wait:').pack(anchor=tk.W)
+        wait_frame = ttk.Frame(export_box)
+        wait_frame.pack(fill=tk.X, pady=8)
+        
+        ttk.Label(wait_frame, text='Wait:').pack(side=tk.LEFT, padx=15)
         self.var_wait = tk.IntVar(value=5)
-        ttk.Spinbox(control_frame, from_=0, to=500,
-                    textvariable=self.var_wait, width=6).pack(fill=tk.X)
-
-        ttk.Label(control_frame, text='Print method:').pack(anchor=tk.W, pady=(10, 0))
+        ttk.Spinbox(wait_frame, from_=0, to=500, textvariable=self.var_wait, width=6).pack(side=tk.LEFT)
+        
+        print_method_box = ttk.Frame(export_box)
+        print_method_box.pack(fill=tk.X, pady=8)
         self.print_method = tk.StringVar(value='say')
-        ttk.Radiobutton(control_frame, text='say', value='say',
-                        variable=self.print_method).pack(anchor=tk.W)
-        ttk.Radiobutton(control_frame, text='echo', value='echo',
-                        variable=self.print_method).pack(anchor=tk.W)
+        ttk.Radiobutton(print_method_box, text='say', value='say', variable=self.print_method).pack(side=tk.LEFT, padx=10)
+        ttk.Radiobutton(print_method_box, text='echo', value='echo', variable=self.print_method).pack(side=tk.RIGHT, padx=10)
 
-        ttk.Button(control_frame, text='Create CFG', command=self.export_cfg).pack(fill=tk.X, pady=10)
-
-        self.painter = PainterApp(
-            parent=display_frame,
-            width=self.var_width.get(),
-            height=self.var_height.get()
-        )
-
+        ttk.Button(export_box, text='Create CFG', command=self.export_cfg).pack(fill=tk.X, pady=10)
+        
+        # -------------- Painter --------------
+        self.painter = PainterApp(parent=display_frame, width=self.var_width.get(), height=self.var_height.get())
+        
 
     def open_image(self):
         path = filedialog.askopenfilename(
@@ -103,15 +95,49 @@ class ImageFrame(ttk.Frame):
         )
         if not path:
             return
+        
+        file_ext = path.lower().split('.')[-1]
+        with_alpha = False
 
+        if file_ext in ('png', 'tga'):
+            with_alpha = messagebox.askyesno(
+                'Import alpha',
+                'Image supports transparency.\nImport with alpha channel?'
+            )
+            
         loader = self.painter.loader
-        if not loader.load_image(path, with_alpha=self.var_alpha.get()):
+        if not loader.load_image(path, with_alpha=with_alpha):
             messagebox.showerror('Error', 'Failed to load image')
             return
 
         loader.resize_image(self.var_width.get(), self.var_height.get())
         self.painter.redraw()
-    
+        
+        
+    def fix_pixel_aspect(self):
+        img = self.painter.loader.edited_image
+        if img is None:
+            return
+
+        w = img.width
+        h = img.height
+
+        target_ratio = w / (h * 2)
+
+        canvas = self.painter.canvas
+        canvas.update_idletasks()
+
+        current_w = canvas.winfo_width()
+        new_h = int(current_w / target_ratio)
+
+        root = self.winfo_toplevel()
+        root.update_idletasks()
+
+        frame_w = root.winfo_width() - canvas.winfo_width()
+        frame_h = root.winfo_height() - canvas.winfo_height()
+
+        root.geometry(f"{current_w + frame_w}x{new_h + frame_h}")
+
     
     def toggle_grid(self):
         self.painter.show_grid = self.var_grid.get()
@@ -120,7 +146,7 @@ class ImageFrame(ttk.Frame):
     
     def resize_image(self):
         self.painter.resize(self.var_width.get(), self.var_height.get())
-
+        
 
     def clear_image(self):
         self.painter.clear(self.var_width.get(), self.var_height.get())

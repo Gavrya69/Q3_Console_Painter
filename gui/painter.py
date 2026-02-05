@@ -18,8 +18,9 @@ class PainterApp:
         self.canvas = tk.Canvas(self.canvas_frame, bg='white')
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        self.canvas.bind('<Button-1>', self.on_draw)
-        self.canvas.bind('<B1-Motion>', self.on_draw)
+        self.canvas.bind('<Button-1>', self.on_brush)
+        self.canvas.bind('<B1-Motion>', self.on_brush)
+        self.canvas.bind('<Button-3>', self.on_fill)
         self.canvas.bind('<Configure>', lambda e: self.redraw())
 
         self.palette_frame = ttk.Frame(self.parent)
@@ -87,7 +88,7 @@ class PainterApp:
         self.loader.original_image = pil_image.copy()
         self.loader.resize_image(self.loader.width, self.loader.height)
         self.redraw()
-
+        
 
     def resize(self, width: int, height: int):
         self.loader.resize_image(width, height)
@@ -98,20 +99,81 @@ class PainterApp:
         self.loader = ImageLoader(width, height)
         self.redraw()
 
+    
+    def flood_fill(self, start_x, start_y, new_color):
+        self.loader.edited_image = self.loader.edited_image.copy()
 
-    def on_draw(self, event):
-        if self.loader.edited_image is None:
+        img = self.loader.edited_image
+        pixels = img.load()
+
+        w, h = img.size
+        target_color = pixels[start_x, start_y]
+
+        if target_color == new_color:
+            return
+
+        stack = [(start_x, start_y)]
+
+        while stack:
+            x, y = stack.pop()
+
+            if x < 0 or y < 0 or x >= w or y >= h:
+                continue
+
+            if pixels[x, y] != target_color:
+                continue
+
+            pixels[x, y] = new_color
+
+            stack.append((x + 1, y))
+            stack.append((x - 1, y))
+            stack.append((x, y + 1))
+            stack.append((x, y - 1))
+
+
+    def on_brush(self, event):
+        img = self.loader.edited_image
+        if img is None:
             return
 
         px = int(event.x / self.scale_x)
         py = int(event.y / self.scale_y)
 
-        if 0 <= px < self.loader.width and 0 <= py < self.loader.height:
-            if self.current_color is None:
-                self.loader.edited_image.putpixel((px, py), (0, 0, 0, 0))
-            else:
-                self.loader.edited_image.putpixel((px, py), self.current_color)
-            self.redraw()
+        if not (0 <= px < self.loader.width and 0 <= py < self.loader.height):
+            return
+
+        # цвет
+        if self.current_color is None:
+            color = (0, 0, 0, 0)
+        else:
+            color = (*self.current_color, 255)
+
+        self.loader.edited_image = img.copy()
+
+        self.loader.edited_image.putpixel((px, py), color)
+        self.redraw()
+    
+    
+    def on_fill(self, event):
+        img = self.loader.edited_image
+        if img is None:
+            return
+
+        px = int(event.x / self.scale_x)
+        py = int(event.y / self.scale_y)
+
+        if not (0 <= px < self.loader.width and 0 <= py < self.loader.height):
+            return
+
+        if self.current_color is None:
+            color = (0, 0, 0, 0)
+        else:
+            color = (*self.current_color, 255)
+
+        self.loader.edited_image = img.copy()
+
+        self.flood_fill(px, py, color)
+        self.redraw()
 
 
     def redraw(self):
@@ -139,7 +201,7 @@ class PainterApp:
 
         self.canvas.delete('all')
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
-
+        
         if self.show_grid:
             for x in range(img.width + 1):
                 self.canvas.create_line(
