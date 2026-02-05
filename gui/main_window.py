@@ -11,8 +11,8 @@ class MainWindow:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title('Q3 Console Painter')
-        self.root.geometry('930x600')
-        self.root.minsize(930, 600)
+        self.root.geometry('930x900')
+        self.root.minsize(930, 400)
 
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(expand=True, fill=tk.BOTH)

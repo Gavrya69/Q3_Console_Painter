@@ -1,4 +1,3 @@
-# core/cfg_writer.py
 import os
 import numpy as np
 import zipfile
@@ -71,7 +70,6 @@ class CFGWriter:
             
 class PK3Writer:
     def __init__(self, frames: list, print_method='say', fps=6):
-
         self.frames = frames
         self.print_method = print_method
         self.fps = fps
